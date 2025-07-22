@@ -1,0 +1,331 @@
+format_version: "11"
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+
+app:
+  envs:
+  # Shared secrets for testing, use a .bitrise.secrets.yml file to define these locally
+  - BITRISEIO_CACHE_SERVICE_URL: $BITRISEIO_CACHE_SERVICE_URL
+  - CACHE_API_CLIENT_SECRET: $CACHE_API_CLIENT_SECRET
+
+workflows:
+  test_npm:
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/Bitrise-React-Native-Sample
+    - BRANCH: master
+    steps:
+    - bundle::generate_api_token: { }
+    - bundle::setup: { }
+    - change-workdir:
+        title: Switch working dir to _tmp
+        inputs:
+        - path: ./_tmp
+    - script:
+        title: Install dependencies
+        inputs:
+        - content: |-
+            set -ex
+            npm ci
+    - path::./:
+        title: Execute step
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key_path_pairs: |-
+            multikey-{{ .OS }}-{{ .Arch }}-node-modules-{{ checksum "package-lock.json" }} = node_modules
+        - verbose: "true"
+    - script:
+        title: Remove node_modules
+        inputs:
+        - content: rm -rf node_modules
+    - git::https://github.com/bitrise-steplib/bitrise-step-restore-cache.git@main:
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key: |
+            multikey-{{ .OS }}-{{ .Arch }}-node-modules-{{ checksum "package-lock.json" }}
+        - verbose: "true"
+    - script:
+        title: Install dependencies again
+        inputs:
+        - content: |-
+            set -ex
+            npm install
+
+  test_empty:
+    description: |
+      Tests the case when there is nothing to compress based on the cache paths. The step returns early in this case
+      with a 0 exit code
+    steps:
+    - bundle::generate_api_token: { }
+    - change-workdir:
+        title: Switch working dir to _tmp
+        inputs:
+        - path: ./_tmp
+        - is_create_path: true
+    - path::./:
+        title: Execute step
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key_path_pairs: |-
+            multikey-node-modules-{{ checksum "package-lock.json" }} = node_modules
+        - verbose: "true"
+
+  test_gradle:
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/Bitrise-Android-Sample
+    - BRANCH: main
+    steps:
+    - bundle::generate_api_token: { }
+    - bundle::setup: { }
+    - change-workdir:
+        title: Switch working dir to _tmp
+        inputs:
+        - path: ./_tmp
+    - android-build:
+        inputs:
+        - module: app
+        - variant: debug
+    - path::./:
+        title: Execute step
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key_path_pairs: |-
+            multikey-{{ .OS }}-{{ .Arch }}-gradle-cache-{{ checksum "**/*.gradle" "**/gradle-wrapper.properties" }} = ~/.gradle/caches, ~/.gradle/wrapper, .gradle/configuration-cache
+        - verbose: "true"
+
+  test_save_skip:
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/Bitrise-React-Native-Sample
+    - BRANCH: master
+    steps:
+    - bundle::generate_api_token: { }
+    - bundle::setup: { }
+    - change-workdir:
+        title: Switch working dir to _tmp
+        inputs:
+        - path: ./_tmp
+    - script:
+        title: Install dependencies
+        inputs:
+        - content: |-
+            set -ex
+            npm ci
+    - path::./:
+        title: Execute step for first time
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key_path_pairs: |-
+            [u] multikey-{{ .OS }}-{{ .Arch }}-node-modules-{{ checksum "package-lock.json" }} = node_modules
+        - verbose: "true"
+    - script:
+        title: Remove node_modules
+        inputs:
+        - content: rm -rf node_modules
+    - git::https://github.com/bitrise-steplib/bitrise-step-restore-cache.git@main:
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key: |-
+            {{ .OS }}-{{ .Arch }}-node-modules-{{ checksum "package-lock.json" }}
+        - verbose: "true"
+    - path::./:
+        title: Execute step after restore
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key_path_pairs: |-
+            [u] multikey-{{ .OS }}-{{ .Arch }}-node-modules-{{ checksum "package-lock.json" }} = node_modules
+        - verbose: "true"
+
+  test_custom_tar_args:
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/Bitrise-React-Native-Sample
+    - BRANCH: master
+    steps:
+    - bundle::generate_api_token: { }
+    - bundle::setup: { }
+    - change-workdir:
+        title: Switch working dir to _tmp
+        inputs:
+        - path: ./_tmp
+    - script:
+        title: Install dependencies
+        inputs:
+        - content: |-
+            set -ex
+            npm ci
+    - path::./:
+        title: Execute step
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key_path_pairs: |-
+            multikey-{{ .OS }}-{{ .Arch }}-node-modules-{{ checksum "package-lock.json" }} = node_modules
+        - verbose: "true"
+        - custom_tar_args: --format posix
+
+  test_multikey:
+    steps:
+    - script:
+        title: Prepare cache folder
+        inputs:
+        - content: |-
+            set -e
+            
+            ORIG_DIR=/tmp/orig
+            CACHE_DIR=/tmp/cache
+            envman add --key ORIG_DIR --value $ORIG_DIR
+            envman add --key CACHE_DIR --value $CACHE_DIR
+            
+            rm -rf $ORIG_DIR
+            mkdir $ORIG_DIR
+            date >> $ORIG_DIR/multikey_0.txt
+            date >> $ORIG_DIR/multikey_1_0.txt
+            date >> $ORIG_DIR/multikey_1_1.txt
+            date >> $ORIG_DIR/multikey_2_0.txt
+            date >> $ORIG_DIR/multikey_2_1.txt
+            date >> $ORIG_DIR/multikey_3.txt
+            mkdir $ORIG_DIR/multikey_4
+            date >> $ORIG_DIR/multikey_4/multikey_4_0.txt
+            date >> $ORIG_DIR/multikey_4/multikey_4_1.txt
+            date >> $ORIG_DIR/multikey_5_0.txt
+            date >> $ORIG_DIR/multikey_5_1.txt
+            
+            rm -rf $CACHE_DIR
+            mkdir $CACHE_DIR
+            cp -r $ORIG_DIR/. $CACHE_DIR/
+
+    - path::./:
+        title: Save
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key_path_pairs: |-
+            [u] multikey_save_0 = $CACHE_DIR/multikey_0.txt
+            [u] multikey_save_1 = $CACHE_DIR/multikey_1_0.txt, $CACHE_DIR/multikey_1_1.txt
+            [u]multikey_save_2=$CACHE_DIR/multikey_2_0.txt,$CACHE_DIR/multikey_2_1.txt
+            multikey_save_3 = $CACHE_DIR/multikey_3.txt
+            multikey_save_4 = $CACHE_DIR/multikey_4
+            multikey_save_5=$CACHE_DIR/multikey_5_0.txt,$CACHE_DIR/multikey_5_1.txt
+        - verbose: "true"
+    - script:
+        title: Clean cache folder
+        inputs:
+        - content: |-
+            set -ex
+            rm -rf $CACHE_DIR
+            mkdir $CACHE_DIR
+    - git::https://github.com/bitrise-steplib/bitrise-step-multikey-restore-cache.git@main:
+        title: Restore
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - keys: |-
+            multikey_save_0
+            invalid_1 || multikey_save_1
+            multikey_save_4
+        - verbose: "true"
+    - script:
+        title: Define expectation
+        inputs:
+        - content: |-
+            cat <<EOF > expected_files.txt
+            ./multikey_1_0.txt
+            ./multikey_1_1.txt
+            ./multikey_4/multikey_4_1.txt
+            ./multikey_4/multikey_4_0.txt
+            ./multikey_0.txt
+            EOF
+    - bundle::check:
+        inputs:
+        - expected: "expected_files.txt"
+        - dir: $CACHE_DIR
+        - orig_dir: $ORIG_DIR
+
+step_bundles:
+  setup:
+    steps:
+    - script:
+        title: Delete _tmp dir
+        inputs:
+        - content: rm -rf _tmp
+    - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git:
+        inputs:
+        - repository_url: $TEST_APP_URL
+        - clone_into_dir: ./_tmp
+        - branch: $BRANCH
+
+  generate_api_token:
+    steps:
+    - script:
+        title: Generate API access token
+        description: Generate an expiring API token using $API_CLIENT_SECRET
+        inputs:
+        - content: |
+            #!/bin/env bash
+            set -e
+
+            json_response=$(curl --fail -X POST https://auth.services.bitrise.io/auth/realms/bitrise-services/protocol/openid-connect/token -k \
+                --data "client_id=bitrise-steps" \
+                --data "client_secret=$CACHE_API_CLIENT_SECRET" \
+                --data "grant_type=urn:ietf:params:oauth:grant-type:uma-ticket" \
+                --data "claim_token=eyJhcHBfaWQiOlsiY2FjaGUtc3RlcHMtdGVzdHMiXSwgIm9yZ19pZCI6WyJ0ZXN0LW9yZy1pZCJdLCAiYWJjc19hY2Nlc3NfZ3JhbnRlZCI6WyJ0cnVlIl19" \
+                --data "claim_token_format=urn:ietf:params:oauth:token-type:jwt" \
+                --data "audience=bitrise-services")
+
+            auth_token=$(echo $json_response | jq -r .access_token)
+
+            envman add --key BITRISEIO_ABCS_API_URL --value $BITRISEIO_CACHE_SERVICE_URL
+            envman add --key BITRISEIO_BITRISE_SERVICES_ACCESS_TOKEN --value $auth_token --sensitive
+
+  check:
+    inputs:
+    - expected: ""
+    - dir: ""
+    - orig_dir: ""
+    steps:
+    - script:
+        title: Check files
+        inputs:
+        - content: |
+            #!/bin/env bash
+            set -e
+            
+            # Push and enter the target directory
+            pushd $dir > /dev/null || { echo "Failed to enter $dir"; exit 1; }
+            
+            # Run find and sort output
+            find . -type f | sort > /tmp/actual_files.txt
+            
+            popd > /dev/null || { echo "Failed to pop directory"; exit 1; }
+            
+            # Sort expected file (if not already sorted)
+            sort "$expected" > /tmp/expected_files_sorted.txt
+            
+            # Compare actual and expected
+            if diff -u /tmp/expected_files_sorted.txt /tmp/actual_files.txt; then
+                # Iterate and compare file contents
+                all_match=true
+                while IFS= read -r filepath; do
+                    # Compare file content, suppress output; show only if different
+                    if ! diff -q "$dir/$filepath" "$orig_dir/$filepath" > /dev/null 2>&1; then
+                        echo "Difference found in file: $filepath"
+                    diff -u "$orig_dir/$filepath" "$dir/$filepath"
+                        all_match=false
+                    fi
+                done < "/tmp/expected_files_sorted.txt"
+            
+                if $all_match; then
+                    echo "All files and their contents match."
+                else
+                    echo "Some files differ in content."
+                    exit 2
+                fi
+            else
+                echo ""
+                echo "Found file differences"
+                exit 2
+            fi
