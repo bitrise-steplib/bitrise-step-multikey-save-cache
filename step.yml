@@ -6,10 +6,10 @@ description: |
   OPTIONAL_UNIQUNESS_PREFIX KEY1 = PATH1, PATH2, ...
   OPTIONAL_UNIQUNESS_PREFIX KEY2 = PATH3, ...
   ```
-  where `OPTIONAL_UNIQUNESS_PREFIX` is `[u]` and means that the key in the given line is unique (see **Restore Cache**). 
+  where `OPTIONAL_UNIQUNESS_PREFIX` is `[u]` and means that the key in the given line is unique (see **Restore Cache**).
   The number of keys and paths for each are limited to a number of 10. The maximum length of a key is 512 characters (longer keys get truncated). Commas (`,`) and equal signs (`=`) are not allowed in keys neither in paths.
-  The same templates can be used for the keys and paths as in the **Restore Cache** step. 
-  
+  The same templates can be used for the keys and paths as in the **Restore Cache** step.
+
   Example (somewhat artificial):
   ```
   [u] multikey_0 = e2e/tmp/multikey_0.txt
@@ -19,7 +19,7 @@ description: |
   multikey_4 = e2e/tmp/multikey_4_0.txt, e2e/tmp/multikey_4_1.txt
   multikey_5=e2e/tmp/multikey_5_0.txt,e2e/tmp/multikey_5_1.txt
   ```
-  
+
   This Step needs to be used in combination with **Multikey Restore Cache** or **Restore Cache**.
 
   #### About key-based caching
@@ -74,7 +74,7 @@ website: https://github.com/bitrise-steplib/bitrise-step-multikey-save-cache
 source_code_url: https://github.com/bitrise-steplib/bitrise-step-multikey-save-cache
 support_url: https://github.com/bitrise-steplib/bitrise-step-multikey-save-cache/issues
 type_tags:
-  - utility
+- utility
 run_if: .IsCI
 is_skippable: true
 toolkit:
@@ -82,48 +82,48 @@ toolkit:
     package_name: github.com/bitrise-steplib/bitrise-step-multikey-save-cache
 deps:
   brew:
-    - name: zstd
+  - name: zstd
   apt_get:
-    - name: zstd
+  - name: zstd
 inputs:
-  - key_path_pairs:
-    opts:
-      title: Cache key -> path list pairs
-      summary: A key -> path list mapping. This can contain template elements.
-      description: |-
-        A mapping used to define the cache keys and the paths to include in the cache archive. The format is:
-        ```
-        OPTIONAL_UNIQUNESS_PREFIX KEY1 = PATH1, PATH2, ...
-        OPTIONAL_UNIQUNESS_PREFIX KEY2 = PATH3, ...
-        ```
-        where `OPTIONAL_UNIQUNESS_PREFIX` is `[u]` and means that the key in the given line is unique (see **Restore Cache**). The number of keys and paths for each are limited to a number of 10
-        
-        The maximum length of a key is 512 characters (longer keys get truncated). Commas (`,`) and equal signs (`=`) are not allowed in keys neither in paths.
-        
-        The key supports template elements for creating dynamic cache keys. These dynamic keys change the final key value based on the build environment or files in the repo in order to create new cache archives. See the Step description for more details and examples.
-      is_required: true
-  - verbose: "false"
-    opts:
-      title: Verbose logging
-      summary: Enable logging additional information for troubleshooting
-      is_required: true
-      value_options:
-        - "true"
-        - "false"
-  - compression_level: 3
-    opts:
-      title: Compression level
-      summary: Zstd compression level to control speed / archive size. Set to 1 for fastest option. Valid values are between 1 and 19. Defaults to 3.
-      is_required: false
-  - custom_tar_args:
-    opts:
-      title: Custom tar arguments
-      summary: Additional arguments to pass to the tar command when creating the cache archive.
-      description: |-
-        Additional arguments to pass to the tar command when creating the cache archive.
-        
-        The arguments are passed directly to the `tar` command. Use this input to customize the behavior of the tar command when creating the cache archive
-        (these are appended to the default arguments used by the step).
-        
-        Example: `--format posix`
-      is_required: false
+- key_path_pairs:
+  opts:
+    title: Cache key -> path list pairs
+    summary: A key -> path list mapping. This can contain template elements.
+    description: |-
+      A mapping used to define the cache keys and the paths to include in the cache archive. The format is:
+      ```
+      OPTIONAL_UNIQUNESS_PREFIX KEY1 = PATH1, PATH2, ...
+      OPTIONAL_UNIQUNESS_PREFIX KEY2 = PATH3, ...
+      ```
+      where `OPTIONAL_UNIQUNESS_PREFIX` is `[u]` and means that the key in the given line is unique (see **Restore Cache**). The number of keys and paths for each are limited to a number of 10
+
+      The maximum length of a key is 512 characters (longer keys get truncated). Commas (`,`) and equal signs (`=`) are not allowed in keys neither in paths.
+
+      The key supports template elements for creating dynamic cache keys. These dynamic keys change the final key value based on the build environment or files in the repo in order to create new cache archives. See the Step description for more details and examples.
+    is_required: true
+- verbose: "false"
+  opts:
+    title: Verbose logging
+    summary: Enable logging additional information for troubleshooting
+    is_required: true
+    value_options:
+      - "true"
+      - "false"
+- compression_level: 3
+  opts:
+    title: Compression level
+    summary: Zstd compression level to control speed / archive size. Set to 1 for fastest option. Valid values are between 1 and 19. Defaults to 3.
+    is_required: false
+- custom_tar_args:
+  opts:
+    title: Custom tar arguments
+    summary: Additional arguments to pass to the tar command when creating the cache archive.
+    description: |-
+      Additional arguments to pass to the tar command when creating the cache archive.
+
+      The arguments are passed directly to the `tar` command. Use this input to customize the behavior of the tar command when creating the cache archive
+      (these are appended to the default arguments used by the step).
+
+      Example: `--format posix`
+    is_required: false

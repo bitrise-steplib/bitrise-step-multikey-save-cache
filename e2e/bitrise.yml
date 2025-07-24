@@ -174,12 +174,12 @@ workflows:
         inputs:
         - content: |-
             set -e
-            
+
             ORIG_DIR=/tmp/orig
             CACHE_DIR=/tmp/cache
             envman add --key ORIG_DIR --value $ORIG_DIR
             envman add --key CACHE_DIR --value $CACHE_DIR
-            
+
             rm -rf $ORIG_DIR
             mkdir $ORIG_DIR
             date >> $ORIG_DIR/multikey_0.txt
@@ -193,7 +193,7 @@ workflows:
             date >> $ORIG_DIR/multikey_4/multikey_4_1.txt
             date >> $ORIG_DIR/multikey_5_0.txt
             date >> $ORIG_DIR/multikey_5_1.txt
-            
+
             rm -rf $CACHE_DIR
             mkdir $CACHE_DIR
             cp -r $ORIG_DIR/. $CACHE_DIR/
@@ -241,7 +241,7 @@ workflows:
             EOF
     - bundle::check:
         inputs:
-        - expected: "expected_files.txt"
+        - expected: expected_files.txt
         - dir: $CACHE_DIR
         - orig_dir: $ORIG_DIR
 
@@ -293,18 +293,18 @@ step_bundles:
         - content: |
             #!/bin/env bash
             set -e
-            
+
             # Push and enter the target directory
             pushd $dir > /dev/null || { echo "Failed to enter $dir"; exit 1; }
-            
+
             # Run find and sort output
             find . -type f | sort > /tmp/actual_files.txt
-            
+
             popd > /dev/null || { echo "Failed to pop directory"; exit 1; }
-            
+
             # Sort expected file (if not already sorted)
             sort "$expected" > /tmp/expected_files_sorted.txt
-            
+
             # Compare actual and expected
             if diff -u /tmp/expected_files_sorted.txt /tmp/actual_files.txt; then
                 # Iterate and compare file contents
@@ -317,7 +317,7 @@ step_bundles:
                         all_match=false
                     fi
                 done < "/tmp/expected_files_sorted.txt"
-            
+
                 if $all_match; then
                     echo "All files and their contents match."
                 else
