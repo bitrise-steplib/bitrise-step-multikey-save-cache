@@ -169,6 +169,7 @@ workflows:
 
   test_multikey:
     steps:
+    - bundle::generate_api_token: { }
     - script:
         title: Prepare cache folder
         inputs:
@@ -264,6 +265,7 @@ step_bundles:
     - script:
         title: Generate API access token
         description: Generate an expiring API token using $API_CLIENT_SECRET
+        run_if: .IsCI
         inputs:
         - content: |
             #!/bin/env bash
