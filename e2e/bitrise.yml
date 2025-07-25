@@ -205,12 +205,12 @@ workflows:
         is_skippable: false
         inputs:
         - key_path_pairs: |-
-            [u] multikey_save_0 = $CACHE_DIR/multikey_0.txt
-            [u] multikey_save_1 = $CACHE_DIR/multikey_1_0.txt, $CACHE_DIR/multikey_1_1.txt
-            [u]multikey_save_2=$CACHE_DIR/multikey_2_0.txt,$CACHE_DIR/multikey_2_1.txt
-            multikey_save_3 = $CACHE_DIR/multikey_3.txt
-            multikey_save_4 = $CACHE_DIR/multikey_4
-            multikey_save_5=$CACHE_DIR/multikey_5_0.txt,$CACHE_DIR/multikey_5_1.txt
+            [u] multikey_save_0_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_0.txt
+            [u] multikey_save_1_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_1_0.txt, $CACHE_DIR/multikey_1_1.txt
+            [u] multikey_save_2_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_2_0.txt, $CACHE_DIR/multikey_2_1.txt
+            multikey_save_3_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_3.txt
+            multikey_save_4_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_4
+            multikey_save_5_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_5_0.txt, $CACHE_DIR/multikey_5_1.txt
         - verbose: "true"
     - script:
         title: Clean cache folder
@@ -225,15 +225,15 @@ workflows:
         is_skippable: false
         inputs:
         - keys: |-
-            multikey_save_0
-            invalid_1 || multikey_save_1
-            multikey_save_4
+            multikey_save_0_$BITRISE_BUILD_NUMBER
+            invalid_1 || multikey_save_1_$BITRISE_BUILD_NUMBER
+            multikey_save_4_$BITRISE_BUILD_NUMBER
         - verbose: "true"
     - script:
         title: Define expectation
         inputs:
         - content: |-
-            cat <<EOF > $ORIG_DIR/expected_files.txt
+            cat <<EOF > $BITRISE_SOURCE_DIR/expected_files.txt
             ./multikey_1_0.txt
             ./multikey_1_1.txt
             ./multikey_4/multikey_4_1.txt
@@ -242,7 +242,7 @@ workflows:
             EOF
     - bundle::check:
         inputs:
-        - expected: $ORIG_DIR/expected_files.txt
+        - expected: $BITRISE_SOURCE_DIR/expected_files.txt
         - dir: $CACHE_DIR
         - orig_dir: $ORIG_DIR
 
