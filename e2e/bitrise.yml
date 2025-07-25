@@ -175,8 +175,9 @@ workflows:
         - content: |-
             set -e
 
-            ORIG_DIR=/tmp/orig
-            CACHE_DIR=/tmp/cache
+            TMP_DIR=$(mktemp -d)
+            ORIG_DIR=$TMP_DIR/orig
+            CACHE_DIR=$TMP_DIR/cache
             envman add --key ORIG_DIR --value $ORIG_DIR
             envman add --key CACHE_DIR --value $CACHE_DIR
 
@@ -218,32 +219,32 @@ workflows:
             set -ex
             rm -rf $CACHE_DIR
             mkdir $CACHE_DIR
-    # - git::https://github.com/bitrise-steplib/bitrise-step-multikey-restore-cache.git@main:
-    #     title: Restore
-    #     run_if: "true"
-    #     is_skippable: false
-    #     inputs:
-    #     - keys: |-
-    #         multikey_save_0
-    #         invalid_1 || multikey_save_1
-    #         multikey_save_4
-    #     - verbose: "true"
-    # - script:
-    #     title: Define expectation
-    #     inputs:
-    #     - content: |-
-    #         cat <<EOF > expected_files.txt
-    #         ./multikey_1_0.txt
-    #         ./multikey_1_1.txt
-    #         ./multikey_4/multikey_4_1.txt
-    #         ./multikey_4/multikey_4_0.txt
-    #         ./multikey_0.txt
-    #         EOF
-    # - bundle::check:
-    #     inputs:
-    #     - expected: expected_files.txt
-    #     - dir: $CACHE_DIR
-    #     - orig_dir: $ORIG_DIR
+    - git::https://github.com/bitrise-steplib/bitrise-step-multikey-restore-cache.git@initial-implementation:
+        title: Restore
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - keys: |-
+            multikey_save_0
+            invalid_1 || multikey_save_1
+            multikey_save_4
+        - verbose: "true"
+    - script:
+        title: Define expectation
+        inputs:
+        - content: |-
+            cat <<EOF > $ORIG_DIR/expected_files.txt
+            ./multikey_1_0.txt
+            ./multikey_1_1.txt
+            ./multikey_4/multikey_4_1.txt
+            ./multikey_4/multikey_4_0.txt
+            ./multikey_0.txt
+            EOF
+    - bundle::check:
+        inputs:
+        - expected: $ORIG_DIR/expected_files.txt
+        - dir: $CACHE_DIR
+        - orig_dir: $ORIG_DIR
 
 step_bundles:
   setup:
