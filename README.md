@@ -2,7 +2,7 @@
 
 [![Step changelog](https://shields.io/github/v/release/bitrise-steplib/bitrise-step-multikey-save-cache?include_prereleases&label=changelog&color=blueviolet)](https://github.com/bitrise-steplib/bitrise-step-multikey-save-cache/releases)
 
-Saves items to the cache based on key-value pairs. This Step needs to be used in combination with **Multikey Restore Cache** or **Restore Cache**.
+Saves items to the cache based on key-value pairs. This Step needs to be used in combination with **Multikey restore cache** or **Restore cache**.
 
 <details>
 <summary>Description</summary>
@@ -12,8 +12,8 @@ Saves items to the cache based on an input in the form of:
 OPTIONAL_UNIQUNESS_PREFIX KEY1 = PATH1, PATH2, ...
 OPTIONAL_UNIQUNESS_PREFIX KEY2 = PATH3, ...
 ```
-where `OPTIONAL_UNIQUNESS_PREFIX` is `[u]` and means that the key in the given line is unique (see **Restore Cache**). The number of keys and paths for each are limited to a number of 10.
-The same templates can be used for the keys and paths as in the **Restore Cache** step.
+where `OPTIONAL_UNIQUNESS_PREFIX` is `[u]` and means that the key in the given line is unique (see **Restore cache**). The number of keys and paths for each are limited to a number of 10.
+The same templates can be used for the keys and paths as in the **Restore cache** step.
 
 Example (somewhat artificial):
 ```
@@ -25,11 +25,11 @@ multikey_4 = e2e/tmp/multikey_4_0.txt, e2e/tmp/multikey_4_1.txt
 multikey_5=e2e/tmp/multikey_5_0.txt,e2e/tmp/multikey_5_1.txt
 ```
 
-This Step needs to be used in combination with **Multikey Restore Cache** or **Restore Cache**.
+This Step needs to be used in combination with **Multikey restore Cache** or **restore Cache**.
 
 #### About key-based caching
 
-Key-based caching is a concept where cache archives are saved and restored using a unique cache key. One Bitrise project can have multiple cache archives stored simultaneously, and the **Restore Cache Step** downloads a cache archive associated with the key provided as a Step input. The **Save Cache** Step is responsible for uploading the cache archive with an exact key.
+Key-based caching is a concept where cache archives are saved and restored using a unique cache key. One Bitrise project can have multiple cache archives stored simultaneously, and the **Restore cache** step downloads a cache archive associated with the key provided as a Step input. The **Save cache** step is responsible for uploading the cache archive with an exact key.
 
 Caches can become outdated across builds when something changes in the project (for example, a dependency gets upgraded to a new version). In this case, a new (unique) cache key is needed to save the new cache contents. This is possible if the cache key is dynamic and changes based on the project state (for example, a checksum of the dependency lockfile is part of the cache key). If you use the same dynamic cache key when restoring the cache, the Step will download the most relevant cache archive available.
 
@@ -37,7 +37,7 @@ Key-based caching is platform-agnostic and can be used to cache anything by care
 
 #### Templates
 
-The Step requires a string key to use when uploading a cache archive. In order to always download the most relevant cache archive for each build, the cache key input can contain template elements. The **Restore cache Step** evaluates the key template at runtime and the final key value can change based on the build environment or files in the repo. Similarly, the **Save cache** Step also uses templates to compute a unique cache key when uploading a cache archive.
+The Step requires a string key to use when uploading a cache archive. In order to always download the most relevant cache archive for each build, the cache key input can contain template elements. The **Multikey estore cache** step evaluates the key template at runtime and the final key value can change based on the build environment or files in the repo. Similarly, the **Multikey save cache** Step also uses templates to compute a unique cache key when uploading a cache archive.
 
 The following variables are supported in the **Cache key** input:
 
@@ -64,9 +64,9 @@ Examples of `getenv`:
 
 #### Key matching
 
-The most straightforward use case is when both the **Save cache** and **Restore cache** Steps use the same exact key to transfer cache between builds. Stored cache archives are scoped to the Bitrise project. Builds can restore caches saved by any previous Workflow run on any Bitrise Stack.
+The most straightforward use case is when both the **Multikey save cache** and **Multikey restore cache** Steps use the same exact key to transfer cache between builds. Stored cache archives are scoped to the Bitrise project. Builds can restore caches saved by any previous Workflow run on any Bitrise Stack.
 
-Unlike this Step, the **Restore cache** Step can define multiple keys as fallbacks when there is no match for the first cache key. See the docs of the **Restore cache** Step for more details.
+Unlike this Step, the **Multikey restore cache** Step can define multiple keys as fallbacks when there is no match for the first cache key. See the docs of the **Multikey restore cache** Step for more details.
 
 #### Skip saving the cache
 
@@ -129,7 +129,7 @@ steps:
 - multikey-save-cache@1:
     title: Save cache
     inputs:
-    - key_path_pairs: |- 
+    - key_path_pairs: |-
         node-modules-{{ checksum "package-lock.json" }} = node_modules
         pip-packages-{{ checksum "requirements.txt" }} = venv/
 ```

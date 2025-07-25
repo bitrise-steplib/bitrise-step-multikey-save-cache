@@ -17,6 +17,8 @@ import (
 const (
 	stepId       = "multikey-save-cache"
 	uniquePrefix = "[u]"
+	keyLimit     = 10 // max number of keys allowed
+	pathLimit    = 10 // max number of paths allowed per key
 
 	fmtErrParseInput               = "failed to parse inputs: %w"
 	fmtErrNoKeyPathPairs           = "no key-path pairs found in input"
@@ -27,6 +29,9 @@ const (
 	fmtErrNoPathsFoundForKey       = "no paths found for key: %s"
 	fmtErrPartialEvaluationFailure = "key-path pair evaluation failures\n"
 	fmtErrEvaluationFailure        = "key-path pair evaluation failure: %w"
+
+	fmtWarnSkippingAdditionalPaths = "Skipping additional paths for key '%s' as the limit of %d paths has been reached"
+	fmtWarnSkippingAdditionalKeys  = "Skipping additional keys as the limit of %d keys has been reached"
 )
 
 type Input struct {
@@ -122,7 +127,12 @@ func (input Input) evaluateKeyPairs(logger log.Logger) (map[string][]string, map
 
 	lines := strings.Split(input.KeyPathPairs, "\n")
 
-	for _, line := range lines {
+	for idx, line := range lines {
+		if idx >= keyLimit {
+			logger.Warnf(fmtWarnSkippingAdditionalKeys, keyLimit)
+			break
+		}
+
 		trimmedLine := strings.TrimSpace(line)
 
 		var keyAndPaths = trimmedLine
@@ -145,7 +155,11 @@ func (input Input) evaluateKeyPairs(logger log.Logger) (map[string][]string, map
 
 		pathStrings := strings.Split(pathsString, ",")
 		var paths []string
-		for _, pathString := range pathStrings {
+		for idx, pathString := range pathStrings {
+			if idx >= pathLimit {
+				logger.Warnf(fmtWarnSkippingAdditionalPaths, key, pathLimit)
+				break
+			}
 			path := strings.TrimSpace(pathString)
 			paths = append(paths, path)
 		}
