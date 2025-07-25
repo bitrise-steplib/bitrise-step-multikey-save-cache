@@ -176,9 +176,8 @@ workflows:
         - content: |-
             set -e
 
-            TMP_DIR=$(mktemp -d)
-            ORIG_DIR=$TMP_DIR/orig
-            CACHE_DIR=$TMP_DIR/cache
+            ORIG_DIR=$BITRISE_SOURCE_DIR/orig
+            CACHE_DIR=$BITRISE_SOURCE_DIR/cache
             envman add --key ORIG_DIR --value $ORIG_DIR
             envman add --key CACHE_DIR --value $CACHE_DIR
 
