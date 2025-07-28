@@ -12,8 +12,9 @@ Saves items to the cache based on an input in the form of:
 OPTIONAL_UNIQUNESS_PREFIX KEY1 = PATH1, PATH2, ...
 OPTIONAL_UNIQUNESS_PREFIX KEY2 = PATH3, ...
 ```
-where `OPTIONAL_UNIQUNESS_PREFIX` is `[u]` and means that the key in the given line is unique (see **Restore cache**). The number of keys and paths for each are limited to a number of 10.
-The same templates can be used for the keys and paths as in the **Restore cache** step.
+where `OPTIONAL_UNIQUNESS_PREFIX` is `[u]` and means that the key in the given line is unique (see **Restore Cache**).
+The number of keys and paths for each are limited to a number of 10. The maximum length of a key is 512 characters (longer keys get truncated). Commas (`,`) and equal signs (`=`) are not allowed in keys neither in paths.
+See templates that can be used in the keys below. The path list is a list of files and folders to include in the cache, separated by a comma (`,`). Each path can contain wildcards (`*` and `**`) that are evaluated at runtime.
 
 Example (somewhat artificial):
 ```
@@ -25,7 +26,7 @@ multikey_4 = e2e/tmp/multikey_4_0.txt, e2e/tmp/multikey_4_1.txt
 multikey_5=e2e/tmp/multikey_5_0.txt,e2e/tmp/multikey_5_1.txt
 ```
 
-This Step needs to be used in combination with **Multikey restore Cache** or **restore Cache**.
+This Step needs to be used in combination with **Multikey restore cache** or **Restore cache**.
 
 #### About key-based caching
 
@@ -37,7 +38,7 @@ Key-based caching is platform-agnostic and can be used to cache anything by care
 
 #### Templates
 
-The Step requires a string key to use when uploading a cache archive. In order to always download the most relevant cache archive for each build, the cache key input can contain template elements. The **Multikey estore cache** step evaluates the key template at runtime and the final key value can change based on the build environment or files in the repo. Similarly, the **Multikey save cache** Step also uses templates to compute a unique cache key when uploading a cache archive.
+The Step requires a string key to use when uploading a cache archive. In order to always download the most relevant cache archive for each build, the cache key input can contain template elements. The **Multikey restore cache** step evaluates the key template at runtime and the final key value can change based on the build environment or files in the repo. Similarly, the **Multikey save cache** Step also uses templates to compute a unique cache key when uploading a cache archive.
 
 The following variables are supported in the **Cache key** input:
 
@@ -64,9 +65,9 @@ Examples of `getenv`:
 
 #### Key matching
 
-The most straightforward use case is when both the **Multikey save cache** and **Multikey restore cache** Steps use the same exact key to transfer cache between builds. Stored cache archives are scoped to the Bitrise project. Builds can restore caches saved by any previous Workflow run on any Bitrise Stack.
+The most straightforward use case is when both the **Multikey save cache** and **Multikey restore cache** steps use the same exact key to transfer cache between builds. Stored cache archives are scoped to the Bitrise project. Builds can restore caches saved by any previous Workflow run on any Bitrise Stack.
 
-Unlike this Step, the **Multikey restore cache** Step can define multiple keys as fallbacks when there is no match for the first cache key. See the docs of the **Multikey restore cache** Step for more details.
+Unlike this Step, the **Multikey restore cache** Step can define multiple keys as fallbacks when there is no match for the first cache key. See the docs of the [**Multikey restore cache** step](https://github.com/bitrise-steplib/bitrise-step-multikey-restore-cache/) for more details.
 
 #### Skip saving the cache
 
@@ -142,7 +143,7 @@ steps:
 
 | Key | Description | Flags | Default |
 | --- | --- | --- | --- |
-| `key_path_pairs` | Key used for saving a cache archive.  The key supports template elements for creating dynamic cache keys. These dynamic keys change the final key value based on the build environment or files in the repo in order to create new cache archives. See the Step description for more details and examples.  The maximum length of a key is 512 characters (longer keys get truncated). Commas (`,`) are not allowed in keys. | required |  |
+| `key_path_pairs` | Key - path list pairs used for saving a cache archive. The key supports template elements for creating dynamic cache keys. These dynamic keys change the final key value based on the build environment or files in the repo in order to create new cache archives. See the Step description for more details and examples.  The maximum length of a key is 512 characters (longer keys get truncated). Commas (`,`) are not allowed in keys. The path list is a list of files and folders to include in the cache. Separate each path with a comma (`,`). Each path can contain wildcards (`*` and `**`) that are evaluated at runtime. | required |  |
 | `verbose` | Enable logging additional information for troubleshooting | required | `false` |
 | `compression_level` | Zstd compression level to control speed / archive size. Set to 1 for fastest option. Valid values are between 1 and 19. Defaults to 3. |  | `3` |
 | `custom_tar_args` | Additional arguments to pass to the tar command when creating the cache archive.  The arguments are passed directly to the `tar` command. Use this input to customize the behavior of the tar command when creating the cache archive (these are appended to the default arguments used by the step).  Example: `--format posix` |  |  |

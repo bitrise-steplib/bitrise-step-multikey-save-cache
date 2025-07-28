@@ -88,7 +88,7 @@ func (step MultikeySaveCacheStep) Run() error {
 	for key, paths := range pathMap {
 		wg.Add(1)
 
-		save(
+		go save(
 			step,
 			CacheInput{
 				Verbose:          input.Verbose,
@@ -137,7 +137,7 @@ func (input Input) evaluateKeyPairs(logger log.Logger) (map[string][]string, map
 
 		var keyAndPaths = trimmedLine
 		var isUnique = false
-		if strings.HasPrefix(strings.TrimSpace(line), uniquePrefix) {
+		if strings.HasPrefix(trimmedLine, uniquePrefix) {
 			keyAndPaths = trimmedLine[len(uniquePrefix):] // remove the prefix by slicing
 			keyAndPaths = strings.TrimSpace(keyAndPaths)
 			isUnique = true

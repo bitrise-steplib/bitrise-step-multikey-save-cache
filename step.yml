@@ -8,7 +8,7 @@ description: |
   ```
   where `OPTIONAL_UNIQUNESS_PREFIX` is `[u]` and means that the key in the given line is unique (see **Restore Cache**).
   The number of keys and paths for each are limited to a number of 10. The maximum length of a key is 512 characters (longer keys get truncated). Commas (`,`) and equal signs (`=`) are not allowed in keys neither in paths.
-  The same templates can be used for the keys and paths as in the **Restore Cache** step.
+  See templates that can be used in the keys below. The path list is a list of files and folders to include in the cache, separated by a comma (`,`). Each path can contain wildcards (`*` and `**`) that are evaluated at runtime.
 
   Example (somewhat artificial):
   ```
@@ -59,9 +59,9 @@ description: |
 
   #### Key matching
 
-  The most straightforward use case is when both the **Save cache** and **Restore cache** Steps use the same exact key to transfer cache between builds. Stored cache archives are scoped to the Bitrise project. Builds can restore caches saved by any previous Workflow run on any Bitrise Stack.
+  The most straightforward use case is when both the **Multikey save cache** and **Multikey restore cache** steps  use the same exact key to transfer cache between builds. Stored cache archives are scoped to the Bitrise project. Builds can restore caches saved by any previous Workflow run on any Bitrise Stack.
 
-  Unlike this Step, the **Restore cache** Step can define multiple keys as fallbacks when there is no match for the first cache key. See the docs of the **Restore cache** Step for more details.
+  Unlike this Step, the **Multikey restore cache** Step can define multiple keys as fallbacks when there is no match for the first cache key. See the docs of the [**Multikey restore cache** step](https://github.com/bitrise-steplib/bitrise-step-multikey-restore-cache/) for more details.
 
   #### Skip saving the cache
 

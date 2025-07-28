@@ -1,22 +1,23 @@
 ### Examples
 
-Check out [Workflow Recipes](https://github.com/bitrise-io/workflow-recipes#-key-based-caching-beta) for platform-specific examples!
+Check out [Workflow Recipes](https://github.com/bitrise-io/workflow-recipes?tab=readme-ov-file#-caching) for platform-specific examples!
 
 #### Skip saving the cache in PR builds (only restore)
 
 ```yaml
 steps:
-- restore-cache@1:
+- multikey-restore-cache@1:
     inputs:
-    - key: node-modules-{{ checksum "package-lock.json" }}
+    - keys: |-
+        node-modules-{{ checksum "package-lock.json" }}
 
 # Build steps
 
-- save-cache@1:
+- multikey-save-cache@1:
     run_if: ".IsCI | and (not .IsPR)" # Condition that is false in PR builds
     inputs:
-    - key: node-modules-{{ checksum "package-lock.json" }}
-    - paths: node_modules
+    - key_path_pairs: |-
+          node-modules-{{ checksum "package-lock.json" }} = node_modules
 ```
 
 #### Separate caches for each OS and architecture
@@ -25,10 +26,10 @@ Cache is not guaranteed to work across different Bitrise Stacks (different OS or
 
 ```yaml
 steps:
-- save-cache@1:
+- multikey-save-cache@1:
     inputs:
-    - key: '{{ .OS }}-{{ .Arch }}-npm-cache-{{ checksum "package-lock.json" }}'
-    - path: node_modules
+    - key_path_pairs: |-
+        {{ .OS }}-{{ .Arch }}-npm-cache-{{ checksum "package-lock.json" }} = node_modules
 ```
 
 #### Multiple independent caches
@@ -37,14 +38,10 @@ You can add multiple instances of this Step to a Workflow:
 
 ```yaml
 steps:
-- save-cache@1:
-    title: Save NPM cache
+- multikey-save-cache@1:
+    title: Save cache
     inputs:
-    - paths: node_modules
-    - key: node-modules-{{ checksum "package-lock.json" }}
-- save-cache@1:
-    title: Save Python cache
-    inputs:
-    - paths: venv/
-    - key: pip-packages-{{ checksum "requirements.txt" }}
+    - key_path_pairs: |-
+        node-modules-{{ checksum "package-lock.json" }} = node_modules
+        pip-packages-{{ checksum "requirements.txt" }} = venv/
 ```
