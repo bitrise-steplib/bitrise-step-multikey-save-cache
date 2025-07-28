@@ -68,21 +68,34 @@ workflows:
     steps:
     - bundle::generate_api_token: { }
     - bundle::create_cache_files: { }
+    - script:
+        title: Export key
+        inputs:
+        - content: |-
+            envman add --key KEY_0 --value "multikey-{{ .OS }}-$BITRISE_BUILD_NUMBER"
+            envman add --key KEY_1 --value "multikey-{{ .Arch }}-$BITRISE_BUILD_NUMBER"
+            envman add --key KEY_2 --value "multikey-{{ .Branch }}-$BITRISE_BUILD_NUMBER"
+            envman add --key KEY_3 --value "multikey-{{ .CommitHash }}-$BITRISE_BUILD_NUMBER"
+            envman add --key KEY_4 --value "multikey-{{ .Workflow }}-$BITRISE_BUILD_NUMBER"
+            envman add --key KEY_5 --value "multikey-{{ checksum \"bitrise.yml\" }}-$BITRISE_BUILD_NUMBER"
+            envman add --key KEY_6 --value "multikey-{{ checksum \"$ORIG_DIR/**/multikey_4_0.txt\" }}-$BITRISE_BUILD_NUMBER"
+            envman add --key KEY_7 --value "multikey-{{ checksum \"$ORIG_DIR/**/*.txt\" \"bitrise.yml\" }}-$BITRISE_BUILD_NUMBER"
+            envman add --key KEY_8 --value "multikey-{{ getenv \"CUSTOM_KEY\" }}-$BITRISE_BUILD_NUMBER"
     - path::./:
         title: Save
         run_if: "true"
         is_skippable: false
         inputs:
         - key_path_pairs: |-
-            multikey-{{ .OS }}-$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_0.txt
-            multikey-{{ .Arch }}-$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_1_0.txt
-            multikey-{{ .Branch }}-$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_1_1.txt
-            multikey-{{ .CommitHash }}-$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_2_0.txt
-            multikey-{{ .Workflow }}-$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_2_1.txt
-            multikey-{{ checksum "$ORIG_DIR/multikey_3.txt" }}-$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_3.txt
-            multikey-{{ checksum "$ORIG_DIR/**/multikey_4_0.txt" }}-$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_4/multikey_4_0.txt
-            multikey-{{ checksum "$ORIG_DIR/**/*.txt" "$CACHE_DIR/multikey_4/multikey_4_1.txt" }}-$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_4/multikey_4_1.txt
-            multikey-{{ getenv "CUSTOM_KEY" }}-$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_5_0.txt
+            $KEY_0 = $CACHE_DIR/multikey_0.txt
+            $KEY_1 = $CACHE_DIR/multikey_1_0.txt
+            $KEY_2 = $CACHE_DIR/multikey_1_1.txt
+            $KEY_3 = $CACHE_DIR/multikey_2_0.txt
+            $KEY_4 = $CACHE_DIR/multikey_2_1.txt
+            $KEY_5 = $CACHE_DIR/multikey_3.txt
+            $KEY_6 = $CACHE_DIR/multikey_4
+            $KEY_7 = $CACHE_DIR/multikey_5_0.txt
+            $KEY_8 = $CACHE_DIR/multikey_5_1.txt
         - verbose: "true"
     - bundle::clean_cache_files: { }
     - git::https://github.com/bitrise-steplib/bitrise-step-multikey-restore-cache.git@initial-implementation:
@@ -91,22 +104,22 @@ workflows:
         is_skippable: false
         inputs:
         - keys: |-
-            multikey-{{ .OS }}-$BITRISE_BUILD_NUMBER
-            multikey-{{ .Arch }}-$BITRISE_BUILD_NUMBER
-            multikey-{{ .Branch }}-$BITRISE_BUILD_NUMBER
-            multikey-{{ .CommitHash }}-$BITRISE_BUILD_NUMBER
-            multikey-{{ .Workflow }}-$BITRISE_BUILD_NUMBER
-            multikey-{{ checksum "$ORIG_DIR/multikey_3.txt" }}-$BITRISE_BUILD_NUMBER
-            multikey-{{ checksum "$ORIG_DIR/**/multikey_4_0.txt" }}-$BITRISE_BUILD_NUMBER
-            multikey-{{ checksum "$ORIG_DIR/**/*.txt" "$CACHE_DIR/multikey_4/multikey_4_1.txt" }}-$BITRISE_BUILD_NUMBER
-            multikey-{{ getenv "CUSTOM_KEY" }}-$BITRISE_BUILD_NUMBER
+            $KEY_0
+            $KEY_1
+            $KEY_2
+            $KEY_3
+            $KEY_4
+            $KEY_5
+            $KEY_6
+            $KEY_7
+            $KEY_8
         - verbose: "true"
     - script:
         title: Define expectation
         inputs:
         - content: |-
             cat <<EOF > $BITRISE_SOURCE_DIR/expected_files.txt
-            .//multikey_0.txt
+            ./multikey_0.txt
             ./multikey_1_0.txt
             ./multikey_1_1.txt
             ./multikey_2_0.txt
@@ -115,6 +128,7 @@ workflows:
             ./multikey_4/multikey_4_0.txt
             ./multikey_4/multikey_4_1.txt
             ./multikey_5_0.txt
+            ./multikey_5_1.txt
             EOF
     - bundle::check:
         inputs:
