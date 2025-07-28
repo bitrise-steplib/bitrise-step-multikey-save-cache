@@ -358,7 +358,7 @@ workflows:
         - dir: ~/.gradle/caches
         - diff_files: false
 
-st_bundles:
+step_bundles:
   setup:
     steps:
     - script:
