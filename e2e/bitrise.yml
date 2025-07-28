@@ -232,7 +232,7 @@ workflows:
             multikey_save_5_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_5_0.txt, $CACHE_DIR/multikey_5_1.txt
         - verbose: "true"
     - bundle::clean_cache_files: { }
-    - git::https://github.com/bitrise-steplib/bitrise-step-restore-cache.git@initial-implementation:
+    - git::https://github.com/bitrise-steplib/bitrise-step-restore-cache.git@master:
         title: Restore
         run_if: "true"
         is_skippable: false
