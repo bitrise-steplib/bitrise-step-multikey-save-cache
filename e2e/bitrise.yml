@@ -169,7 +169,7 @@ workflows:
         run_if: "true"
         is_skippable: false
         inputs:
-        - key: |-
+        - keys: |-
             {{ .OS }}-{{ .Arch }}-node-modules-{{ checksum "package-lock.json" }}
         - verbose: "true"
     - script:
