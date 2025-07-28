@@ -8,22 +8,6 @@ app:
   - CACHE_API_CLIENT_SECRET: $CACHE_API_CLIENT_SECRET
 
 workflows:
-  self_invoke:
-    description: |
-        This workflow is used to invoke the step in the e2e tests.
-        It is not meant to be run manually.
-    envs:
-    - key_path_pairs: $key_path_pairs
-    - BRANCH: master
-    steps:
-    - path::./:
-        title: Execute step
-        run_if: "true"
-        is_skippable: false
-        inputs:
-        - key_path_pairs: |-
-            $key_path_pairs
-        - verbose: "true"
   test_empty:
     description: |
         Tests the case when there is nothing to compress based on the cache paths. The step returns early in this case
@@ -136,48 +120,48 @@ workflows:
         - dir: $CACHE_DIR
         - orig_dir: $ORIG_DIR
 
+  test_save_skip_helper:
+    description: |
+        This workflow is used to test the cache save skip functionality.
+    steps:
+    - bundle::generate_api_token: { }
+    - path::./:
+        title: Execute step
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key_path_pairs: |-
+            [u] multikey_save_0_skip_{{ getenv "BITRISE_BUILD_NUMBER" }} = bitrise.yml
+        - verbose: "true"
+    - git::https://github.com/bitrise-steplib/bitrise-step-multikey-restore-cache.git@initial-implementation:
+        title: Restore
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - keys: |-
+            multikey_save_0_skip_{{ getenv "BITRISE_BUILD_NUMBER" }}
+        - verbose: "true"
+    - path::./:
+        title: Execute step
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key_path_pairs: |-
+            [u] multikey_save_0_skip_{{ getenv "BITRISE_BUILD_NUMBER" }} = bitrise.yml
+        - verbose: "true"
+
   test_save_skip:
     envs:
     - TEST_APP_URL: https://github.com/bitrise-io/Bitrise-React-Native-Sample
     - BRANCH: master
     steps:
-    - bundle::generate_api_token: { }
-    - bundle::setup: { }
-    - change-workdir:
-        title: Switch working dir to _tmp
-        inputs:
-        - path: ./_tmp
     - script:
-        title: Install dependencies
+        title: Execute step with captured output
         inputs:
         - content: |-
             set -ex
-            npm ci
-    - path::./:
-        title: Execute step for first time
-        run_if: "true"
-        is_skippable: false
-        inputs:
-        - key_path_pairs: |-
-            [u] multikey-{{ .OS }}-{{ .Arch }}-node-modules-{{ checksum "package-lock.json" }} = node_modules
-        - verbose: "true"
-    - script:
-        title: Remove node_modules
-        inputs:
-        - content: rm -rf node_modules
-    - git::https://github.com/bitrise-steplib/bitrise-step-multikey-restore-cache.git@initial-implementation:
-        run_if: "true"
-        is_skippable: false
-        inputs:
-        - keys: |-
-            {{ .OS }}-{{ .Arch }}-node-modules-{{ checksum "package-lock.json" }}
-        - verbose: "true"
-    - script:
-        title: Execute step after restore
-        inputs:
-        - content: |-
-            set -ex
-            key_path_pairs="[u] multikey-{{ .OS }}-{{ .Arch }}-node-modules-{{ checksum "package-lock.json" }} = node_modules" bitrise run --config e2e/bitrise.yml --workflow test_multikey save_after_restore.log 2>&1
+
+            bitrise run --config e2e/bitrise.yml --workflow test_save_skip_helper > save_after_restore.log 2>&1
             if grep -q "Cache save can be skipped" save_after_restore.log; then
                 echo "Cache save skipped as expected."
             else
