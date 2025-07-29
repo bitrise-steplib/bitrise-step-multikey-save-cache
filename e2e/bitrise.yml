@@ -1,0 +1,557 @@
+format_version: "11"
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+
+app:
+  envs:
+  # Shared secrets for testing, use a .bitrise.secrets.yml file to define these locally
+  - BITRISEIO_CACHE_SERVICE_URL: $BITRISEIO_CACHE_SERVICE_URL
+  - CACHE_API_CLIENT_SECRET: $CACHE_API_CLIENT_SECRET
+
+workflows:
+  test_empty:
+    description: |
+        Tests the case when there is nothing to compress based on the cache paths. The step returns early in this case
+        with a 0 exit code
+    steps:
+    - bundle::generate_api_token: { }
+    - bundle::create_cache_files: { }
+    - path::./:
+        title: Execute step
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key_path_pairs: |-
+            multikey_save_0_empty_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_0.txt
+        - verbose: "true"
+    - bundle::clear_cache:
+        inputs:
+        - keys: |-
+            multikey_save_0_empty_$BITRISE_BUILD_NUMBER
+
+  test_custom_tar_args:
+    description: |
+        Simply test if custom args (custom_tar_args) are not breaking the step (result is not a failure).
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/Bitrise-React-Native-Sample
+    - BRANCH: master
+    steps:
+    - bundle::generate_api_token: { }
+    - bundle::create_cache_files: { }
+    - path::./:
+        title: Execute step
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key_path_pairs: |-
+            multikey_save_0_custom_args_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_0.txt
+        - verbose: "true"
+        - custom_tar_args: --format posix
+    - bundle::clear_cache:
+        inputs:
+        - keys: |-
+            multikey_save_0_custom_args_$BITRISE_BUILD_NUMBER
+
+  test_key_templates:
+    description: |
+        Tests the key templates, which are used to create dynamic cache keys.
+        The step should not fail, and the cache should be saved with the expected key.
+    envs:
+    - CUSTOM_KEY: custom-key
+    steps:
+    - bundle::generate_api_token: { }
+    - bundle::create_cache_files: { }
+    - script:
+        title: Export key
+        inputs:
+        - content: |-
+            envman add --key KEY_0 --value "multikey-{{ .OS }}-$BITRISE_BUILD_NUMBER"
+            envman add --key KEY_1 --value "multikey-{{ .Arch }}-$BITRISE_BUILD_NUMBER"
+            envman add --key KEY_2 --value "multikey-{{ .Branch }}-$BITRISE_BUILD_NUMBER"
+            envman add --key KEY_3 --value "multikey-{{ .CommitHash }}-$BITRISE_BUILD_NUMBER"
+            envman add --key KEY_4 --value "multikey-{{ .Workflow }}-$BITRISE_BUILD_NUMBER"
+            envman add --key KEY_5 --value "multikey-{{ checksum \"bitrise.yml\" }}-$BITRISE_BUILD_NUMBER"
+            envman add --key KEY_6 --value "multikey-{{ checksum \"$ORIG_DIR/**/multikey_4_0.txt\" }}-$BITRISE_BUILD_NUMBER"
+            envman add --key KEY_7 --value "multikey-{{ checksum \"$ORIG_DIR/**/*.txt\" \"bitrise.yml\" }}-$BITRISE_BUILD_NUMBER"
+            envman add --key KEY_8 --value "multikey-{{ getenv \"CUSTOM_KEY\" }}-$BITRISE_BUILD_NUMBER"
+    - path::./:
+        title: Save
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key_path_pairs: |-
+            $KEY_0 = $CACHE_DIR/multikey_0.txt
+            $KEY_1 = $CACHE_DIR/multikey_1_0.txt
+            $KEY_2 = $CACHE_DIR/multikey_1_1.txt
+            $KEY_3 = $CACHE_DIR/multikey_2_0.txt
+            $KEY_4 = $CACHE_DIR/multikey_2_1.txt
+            $KEY_5 = $CACHE_DIR/multikey_3.txt
+            $KEY_6 = $CACHE_DIR/multikey_4
+            $KEY_7 = $CACHE_DIR/multikey_5_0.txt
+            $KEY_8 = $CACHE_DIR/multikey_5_1.txt
+        - verbose: "true"
+    - bundle::clean_cache_files: { }
+    - git::https://github.com/bitrise-steplib/bitrise-step-multikey-restore-cache.git@initial-implementation:
+        title: Restore
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - keys: |-
+            $KEY_0
+            $KEY_1
+            $KEY_2
+            $KEY_3
+            $KEY_4
+            $KEY_5
+            $KEY_6
+            $KEY_7
+            $KEY_8
+        - verbose: "true"
+    - script:
+        title: Define expectation
+        inputs:
+        - content: |-
+            cat <<EOF > $BITRISE_SOURCE_DIR/expected_files.txt
+            ./multikey_0.txt
+            ./multikey_1_0.txt
+            ./multikey_1_1.txt
+            ./multikey_2_0.txt
+            ./multikey_2_1.txt
+            ./multikey_3.txt
+            ./multikey_4/multikey_4_0.txt
+            ./multikey_4/multikey_4_1.txt
+            ./multikey_5_0.txt
+            ./multikey_5_1.txt
+            EOF
+    - bundle::check:
+        inputs:
+        - expected: $BITRISE_SOURCE_DIR/expected_files.txt
+        - dir: $CACHE_DIR
+        - orig_dir: $ORIG_DIR
+
+  test_save_skip_helper:
+    description: |
+        This workflow is used to test the cache save skip functionality.
+    steps:
+    - bundle::generate_api_token: { }
+    - path::./:
+        title: Execute step
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key_path_pairs: |-
+            [u] multikey_save_0_skip_{{ getenv "BITRISE_BUILD_NUMBER" }} = bitrise.yml
+        - verbose: "true"
+    - git::https://github.com/bitrise-steplib/bitrise-step-multikey-restore-cache.git@initial-implementation:
+        title: Restore
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - keys: |-
+            multikey_save_0_skip_{{ getenv "BITRISE_BUILD_NUMBER" }}
+        - verbose: "true"
+    - path::./:
+        title: Execute step
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key_path_pairs: |-
+            [u] multikey_save_0_skip_{{ getenv "BITRISE_BUILD_NUMBER" }} = bitrise.yml
+        - verbose: "true"
+    - bundle::clear_cache:
+        inputs:
+        - keys: |-
+            multikey_save_0_skip_$BITRISE_BUILD_NUMBER
+
+  test_save_skip:
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/Bitrise-React-Native-Sample
+    - BRANCH: master
+    steps:
+    - script:
+        title: Execute step with captured output
+        inputs:
+        - content: |-
+            set -ex
+
+            bitrise run --config e2e/bitrise.yml --workflow test_save_skip_helper > save_after_restore.log 2>&1
+            if grep -q "Cache save can be skipped" save_after_restore.log; then
+                echo "Cache save skipped as expected."
+            else
+                echo "Cache save was executed."
+                exit 1
+            fi
+
+  test_selective_restoration:
+    steps:
+    - bundle::generate_api_token: { }
+    - bundle::create_cache_files: { }
+    - path::./:
+        title: Save
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key_path_pairs: |-
+            [u] multikey_save_0_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_0.txt
+            [u] multikey_save_1_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_1_0.txt, $CACHE_DIR/multikey_1_1.txt
+            [u] multikey_save_2_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_2_0.txt, $CACHE_DIR/multikey_2_1.txt
+            multikey_save_3_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_3.txt
+            multikey_save_4_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_4
+            multikey_save_5_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_5_0.txt, $CACHE_DIR/multikey_5_1.txt
+        - verbose: "true"
+    - bundle::clean_cache_files: { }
+    - git::https://github.com/bitrise-steplib/bitrise-step-multikey-restore-cache.git@initial-implementation:
+        title: Restore
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - keys: |-
+            multikey_save_0_$BITRISE_BUILD_NUMBER
+            invalid_1 || multikey_save_1_$BITRISE_BUILD_NUMBER
+            multikey_save_4_$BITRISE_BUILD_NUMBER
+        - verbose: "true"
+    - script:
+        title: Define expectation
+        inputs:
+        - content: |-
+            cat <<EOF > $BITRISE_SOURCE_DIR/expected_files.txt
+            ./multikey_1_0.txt
+            ./multikey_1_1.txt
+            ./multikey_4/multikey_4_1.txt
+            ./multikey_4/multikey_4_0.txt
+            ./multikey_0.txt
+            EOF
+    - bundle::check:
+        inputs:
+        - expected: $BITRISE_SOURCE_DIR/expected_files.txt
+        - dir: $CACHE_DIR
+        - orig_dir: $ORIG_DIR
+    - bundle::clear_cache:
+        inputs:
+        - keys: |-
+            multikey_save_0_$BITRISE_BUILD_NUMBER
+            multikey_save_1_$BITRISE_BUILD_NUMBER
+            multikey_save_4_$BITRISE_BUILD_NUMBER
+
+  test_non_multikey_restore:
+    steps:
+    - bundle::generate_api_token: { }
+    - bundle::create_cache_files: { }
+    - path::./:
+        title: Save
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key_path_pairs: |-
+            [u] multikey_save_0_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_0.txt
+            [u] multikey_save_1_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_1_0.txt, $CACHE_DIR/multikey_1_1.txt
+            [u] multikey_save_2_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_2_0.txt, $CACHE_DIR/multikey_2_1.txt
+            multikey_save_3_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_3.txt
+            multikey_save_4_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_4
+            multikey_save_5_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_5_0.txt, $CACHE_DIR/multikey_5_1.txt
+        - verbose: "true"
+    - bundle::clean_cache_files: { }
+    - git::https://github.com/bitrise-steplib/bitrise-step-restore-cache.git@main:
+        title: Restore
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key: |-
+            multikey_save_1_$BITRISE_BUILD_NUMBER
+        - verbose: "true"
+    - script:
+        title: Define expectation
+        inputs:
+        - content: |-
+            cat <<EOF > $BITRISE_SOURCE_DIR/expected_files.txt
+            ./multikey_1_0.txt
+            ./multikey_1_1.txt
+            EOF
+    - bundle::check:
+        inputs:
+        - expected: $BITRISE_SOURCE_DIR/expected_files.txt
+        - dir: $CACHE_DIR
+        - orig_dir: $ORIG_DIR
+    - bundle::clear_cache:
+        inputs:
+        - keys: |-
+            multikey_save_1_$BITRISE_BUILD_NUMBER
+
+  test_npm:
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/Bitrise-React-Native-Sample
+    - BRANCH: master
+    steps:
+    - bundle::generate_api_token: { }
+    - bundle::setup: { }
+    - change-workdir:
+        title: Switch working dir to _tmp
+        inputs:
+        - path: ./_tmp
+    - script:
+        title: Install dependencies
+        inputs:
+        - content: |-
+            set -ex
+            npm ci
+    - bundle::save_dir_content_desc:
+        inputs:
+        - target_dir: node_modules
+    - script:
+        title: Export key
+        inputs:
+        - content: envman add --key BITRISE_CACHE_KEY --value "multikey-{{ .OS }}-{{ .Arch }}-node-modules-{{ checksum "package-lock.json" }}-$BITRISE_BUILD_NUMBER"
+    - path::./:
+        title: Execute step
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key_path_pairs: |-
+            $BITRISE_CACHE_KEY = node_modules
+        - verbose: "true"
+    - script:
+        title: Remove node_modules
+        inputs:
+        - content: rm -rf node_modules
+    - git::https://github.com/bitrise-steplib/bitrise-step-multikey-restore-cache.git@initial-implementation:
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - keys: |
+            $BITRISE_CACHE_KEY
+        - verbose: "true"
+    - script:
+        title: Install dependencies again
+        inputs:
+        - content: |-
+            set -ex
+            npm install
+    - bundle::check:
+        inputs:
+        - expected: $BITRISE_SOURCE_DIR/expected_files.txt
+        - dir: node_modules
+        - diff_files: false
+
+  test_gradle:
+    envs:
+    - TEST_APP_URL: https://github.com/bitrise-io/Bitrise-Android-Sample
+    - BRANCH: main
+    steps:
+    - bundle::generate_api_token: { }
+    - bundle::setup: { }
+    - change-workdir:
+        title: Switch working dir to _tmp
+        inputs:
+        - path: ./_tmp
+    - android-build:
+        inputs:
+        - module: app
+        - variant: debug
+    - bundle::save_dir_content_desc:
+        inputs:
+        - target_dir: ~/.gradle/wrapper
+    - script:
+        title: Export key
+        inputs:
+        - content: envman add --key BITRISE_CACHE_KEY --value "multikey-{{ .OS }}-{{ .Arch }}-gradle-cache-{{ checksum \"**/*.gradle\" \"**/gradle-wrapper.properties\" }}-$BITRISE_BUILD_NUMBER"
+    - path::./:
+        title: Execute step
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - key_path_pairs: |-
+            $BITRISE_CACHE_KEY = ~/.gradle/caches, ~/.gradle/wrapper, .gradle/configuration-cache
+        - verbose: "true"
+    - script:
+        title: Remove ~/.gradle/wrapper
+        inputs:
+        - content: |-
+            rm -rf ~/.gradle/wrapper
+    - git::https://github.com/bitrise-steplib/bitrise-step-multikey-restore-cache.git@initial-implementation:
+        run_if: "true"
+        is_skippable: false
+        inputs:
+        - keys: |
+            $BITRISE_CACHE_KEY
+        - verbose: "true"
+    - bundle::check:
+        inputs:
+        - expected: $BITRISE_SOURCE_DIR/expected_files.txt
+        - dir: ~/.gradle/wrapper
+        - diff_files: false
+
+step_bundles:
+  setup:
+    steps:
+    - script:
+        title: Delete _tmp dir
+        inputs:
+        - content: rm -rf _tmp
+    - git::https://github.com/bitrise-steplib/bitrise-step-simple-git-clone.git:
+        inputs:
+        - repository_url: $TEST_APP_URL
+        - clone_into_dir: ./_tmp
+        - branch: $BRANCH
+
+  generate_api_token:
+    steps:
+    - script:
+        title: Generate API access token
+        description: Generate an expiring API token using $API_CLIENT_SECRET
+        run_if: .IsCI
+        inputs:
+        - content: |
+            #!/bin/env bash
+            set -e
+
+            json_response=$(curl --fail -X POST https://auth.services.bitrise.io/auth/realms/bitrise-services/protocol/openid-connect/token -k \
+                --data "client_id=bitrise-steps" \
+                --data "client_secret=$CACHE_API_CLIENT_SECRET" \
+                --data "grant_type=urn:ietf:params:oauth:grant-type:uma-ticket" \
+                --data "claim_token=eyJhcHBfaWQiOlsiY2FjaGUtc3RlcHMtdGVzdHMiXSwgIm9yZ19pZCI6WyJ0ZXN0LW9yZy1pZCJdLCAiYWJjc19hY2Nlc3NfZ3JhbnRlZCI6WyJ0cnVlIl19" \
+                --data "claim_token_format=urn:ietf:params:oauth:token-type:jwt" \
+                --data "audience=bitrise-services")
+
+            auth_token=$(echo $json_response | jq -r .access_token)
+
+            envman add --key BITRISEIO_ABCS_API_URL --value $BITRISEIO_CACHE_SERVICE_URL
+            envman add --key BITRISEIO_BITRISE_SERVICES_ACCESS_TOKEN --value $auth_token --sensitive
+
+  create_cache_files:
+    steps:
+    - script:
+        title: Prepare cache folder
+        inputs:
+        - content: |-
+            set -e
+
+            ORIG_DIR=$BITRISE_SOURCE_DIR/orig
+            CACHE_DIR=$BITRISE_SOURCE_DIR/cache
+            envman add --key ORIG_DIR --value $ORIG_DIR
+            envman add --key CACHE_DIR --value $CACHE_DIR
+
+            rm -rf $ORIG_DIR
+            mkdir $ORIG_DIR
+            date >> $ORIG_DIR/multikey_0.txt
+            date >> $ORIG_DIR/multikey_1_0.txt
+            date >> $ORIG_DIR/multikey_1_1.txt
+            date >> $ORIG_DIR/multikey_2_0.txt
+            date >> $ORIG_DIR/multikey_2_1.txt
+            date >> $ORIG_DIR/multikey_3.txt
+            mkdir $ORIG_DIR/multikey_4
+            date >> $ORIG_DIR/multikey_4/multikey_4_0.txt
+            date >> $ORIG_DIR/multikey_4/multikey_4_1.txt
+            date >> $ORIG_DIR/multikey_5_0.txt
+            date >> $ORIG_DIR/multikey_5_1.txt
+
+            rm -rf $CACHE_DIR
+            mkdir $CACHE_DIR
+            cp -r $ORIG_DIR/. $CACHE_DIR/
+
+  clean_cache_files:
+    steps:
+    - script:
+        title: Clean cache folder
+        inputs:
+        - content: |-
+            set -ex
+            rm -rf $CACHE_DIR
+            mkdir $CACHE_DIR
+
+  check:
+    inputs:
+    - expected: ""
+    - dir: ""
+    - orig_dir: ""
+    - diff_files: true
+    steps:
+    - script:
+        title: Check files
+        inputs:
+        - content: |
+            #!/bin/env bash
+            set -e
+
+            dir="${dir/#\~/$HOME}"
+            orig_dir="${orig_dir/#\~/$HOME}"
+
+            # Push and enter the target directory
+            pushd $dir > /dev/null || { echo "Failed to enter $dir"; exit 1; }
+
+            # Run find and sort output
+            find . -type f | sort > /tmp/actual_files.txt
+
+            popd > /dev/null || { echo "Failed to pop directory"; exit 1; }
+
+            # Sort expected file (if not already sorted)
+            sort "$expected" > /tmp/expected_files_sorted.txt
+
+            # Compare actual and expected
+            if diff -u /tmp/expected_files_sorted.txt /tmp/actual_files.txt; then
+                if [ "$diff_files" = "true" ]; then
+                    echo "No differences found in file lists."
+                else
+                    echo "File lists match skipping content comparison."
+                    exit 0
+                fi
+
+                # Iterate and compare file contents
+                all_match=true
+                while IFS= read -r filepath; do
+                    # Compare file content, suppress output; show only if different
+                    if ! diff -q "$dir/$filepath" "$orig_dir/$filepath" > /dev/null 2>&1; then
+                        echo "Difference found in file: $filepath"
+                    diff -u "$orig_dir/$filepath" "$dir/$filepath"
+                        all_match=false
+                    fi
+                done < "/tmp/expected_files_sorted.txt"
+
+                if $all_match; then
+                    echo "All files and their contents match."
+                else
+                    echo "Some files differ in content."
+                    exit 2
+                fi
+            else
+                echo ""
+                echo "Found file differences"
+                exit 2
+            fi
+
+  save_dir_content_desc:
+    inputs:
+    - target_dir: ""
+    steps:
+    - script:
+        title: Prepare cache expectation
+        inputs:
+        - content: |-
+            #!/bin/env bash
+            set -e
+
+            target_dir="${target_dir/#\~/$HOME}"
+            pushd $target_dir > /dev/null || { echo "Failed to enter $target_dir"; exit 1; }
+            find . -type f | sort > $BITRISE_SOURCE_DIR/expected_files.txt
+            popd > /dev/null || { echo "Failed to pop directory"; exit 1; }
+
+  clear_cache:
+    inputs:
+    - keys: ""
+    steps:
+    - script:
+        title: Clear cache
+        is_always_run: true
+        inputs:
+        - content: |-
+            #!/bin/env bash
+            set -e
+
+            if [ -z "$BITRISEIO_ABCS_API_URL" ] || [ -z "$BITRISEIO_BITRISE_SERVICES_ACCESS_TOKEN" ] || [ -z "$BITRISE_APP_SLUG" ]; then
+                echo "Required environment variables are not set."
+                exit 1
+            fi
+
+            while IFS= read -r key; do
+                curl -X DELETE \
+                    -H "Authorization: Bearer $BITRISEIO_BITRISE_SERVICES_ACCESS_TOKEN" \
+                    "$BITRISEIO_ABCS_API_URL/v0.1/apps/$BITRISE_APP_SLUG/cache_items/$key"
+            done <<< "$keys"
