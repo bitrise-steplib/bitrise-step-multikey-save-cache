@@ -326,11 +326,11 @@ workflows:
         - variant: debug
     - bundle::save_dir_content_desc:
         inputs:
-        - target_dir: ~/.gradle/caches
+        - target_dir: ~/.gradle/wrapper
     - script:
         title: Export key
         inputs:
-        - content: envman add --key BITRISE_CACHE_KEY --value "multikey-{{ .OS }}-{{ .Arch }}-gradle-cache-{{ checksum "**/*.gradle" "**/gradle-wrapper.properties" }}-$BITRISE_BUILD_NUMBER"
+        - content: envman add --key BITRISE_CACHE_KEY --value "multikey-{{ .OS }}-{{ .Arch }}-gradle-cache-{{ checksum \"**/*.gradle\" \"**/gradle-wrapper.properties\" }}-$BITRISE_BUILD_NUMBER"
     - path::./:
         title: Execute step
         run_if: "true"
@@ -340,10 +340,11 @@ workflows:
             $BITRISE_CACHE_KEY = ~/.gradle/caches, ~/.gradle/wrapper, .gradle/configuration-cache
         - verbose: "true"
     - script:
-        title: Remove ~/.gradle/caches
+        title: Remove ~/.gradle/wrapper
         inputs:
-        - content: rm -rf ~/.gradle/caches
-    - git::https://github.com/bitrise-steplib/bitrise-multikey-step-restore-cache.git@initial-implementation::
+        - content: |-
+            rm -rf ~/.gradle/wrapper
+    - git::https://github.com/bitrise-steplib/bitrise-step-multikey-restore-cache.git@initial-implementation:
         run_if: "true"
         is_skippable: false
         inputs:
@@ -353,7 +354,7 @@ workflows:
     - bundle::check:
         inputs:
         - expected: $BITRISE_SOURCE_DIR/expected_files.txt
-        - dir: ~/.gradle/caches
+        - dir: ~/.gradle/wrapper
         - diff_files: false
 
 step_bundles:
@@ -448,6 +449,9 @@ step_bundles:
             #!/bin/env bash
             set -e
 
+            dir="${dir/#\~/$HOME}"
+            orig_dir="${orig_dir/#\~/$HOME}"
+
             # Push and enter the target directory
             pushd $dir > /dev/null || { echo "Failed to enter $dir"; exit 1; }
 
@@ -501,6 +505,7 @@ step_bundles:
         - content: |-
             set -e
 
-            pushd "$target_dir" > /dev/null || { echo "Failed to enter $target_dir"; exit 1; }
+            target_dir="${target_dir/#\~/$HOME}"
+            pushd $target_dir > /dev/null || { echo "Failed to enter $target_dir"; exit 1; }
             find . -type f | sort > $BITRISE_SOURCE_DIR/expected_files.txt
             popd > /dev/null || { echo "Failed to pop directory"; exit 1; }
