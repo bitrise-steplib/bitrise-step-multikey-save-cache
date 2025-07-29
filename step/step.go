@@ -88,19 +88,21 @@ func (step MultikeySaveCacheStep) Run() error {
 	for key, paths := range pathMap {
 		wg.Add(1)
 
-		go save(
-			step,
-			CacheInput{
-				Verbose:          input.Verbose,
-				Key:              key,
-				Paths:            paths,
-				IsKeyUnique:      uniquenessMap[key],
-				CompressionLevel: input.CompressionLevel,
-				CustomTarArgs:    input.CustomTarArgs,
-			},
-			&wg,
-			errs,
-		)
+		go func(key string, paths []string) {
+			defer wg.Done()
+			save(
+				step,
+				CacheInput{
+					Verbose:          input.Verbose,
+					Key:              key,
+					Paths:            paths,
+					IsKeyUnique:      uniquenessMap[key],
+					CompressionLevel: input.CompressionLevel,
+					CustomTarArgs:    input.CustomTarArgs,
+				},
+				errs,
+			)
+		}(key, paths)
 	}
 
 	wg.Wait()
@@ -200,11 +202,8 @@ type CacheInput struct {
 func save(
 	step MultikeySaveCacheStep,
 	cacheInput CacheInput,
-	wg *sync.WaitGroup,
 	errors chan<- error,
 ) {
-	defer wg.Done()
-
 	saver := cache.NewSaver(
 		step.envRepo,
 		step.logger,

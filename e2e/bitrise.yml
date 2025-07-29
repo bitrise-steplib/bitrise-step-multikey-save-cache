@@ -503,6 +503,7 @@ step_bundles:
         title: Prepare cache expectation
         inputs:
         - content: |-
+            #!/bin/env bash
             set -e
 
             target_dir="${target_dir/#\~/$HOME}"
