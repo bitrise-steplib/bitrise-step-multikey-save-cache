@@ -42,6 +42,10 @@ workflows:
             multikey_save_0_custom_args_$BITRISE_BUILD_NUMBER = $CACHE_DIR/multikey_0.txt
         - verbose: "true"
         - custom_tar_args: --format posix
+    - bundle::clear_cache:
+        inputs:
+        - keys: |-
+            multikey_save_0_custom_args_$BITRISE_BUILD_NUMBER
 
   test_key_templates:
     description: |
@@ -119,6 +123,19 @@ workflows:
         - expected: $BITRISE_SOURCE_DIR/expected_files.txt
         - dir: $CACHE_DIR
         - orig_dir: $ORIG_DIR
+    - bundle::clear_cache:
+        is_always_run: "true"
+        inputs:
+        - keys: |-
+            $KEY_0
+            $KEY_1
+            $KEY_2
+            $KEY_3
+            $KEY_4
+            $KEY_5
+            $KEY_6
+            $KEY_7
+            $KEY_8
 
   test_save_skip_helper:
     description: |
@@ -149,6 +166,11 @@ workflows:
         - key_path_pairs: |-
             [u] multikey_save_0_skip_{{ getenv "BITRISE_BUILD_NUMBER" }} = bitrise.yml
         - verbose: "true"
+    - bundle::clear_cache:
+        is_always_run: "true"
+        inputs:
+        - keys: |-
+            multikey_save_0_skip_{{ getenv "BITRISE_BUILD_NUMBER" }}
 
   test_save_skip:
     envs:
@@ -213,6 +235,13 @@ workflows:
         - expected: $BITRISE_SOURCE_DIR/expected_files.txt
         - dir: $CACHE_DIR
         - orig_dir: $ORIG_DIR
+    - bundle::clear_cache:
+        is_always_run: "true"
+        inputs:
+        - keys: |-
+            multikey_save_0_$BITRISE_BUILD_NUMBER
+            multikey_save_1_$BITRISE_BUILD_NUMBER
+            multikey_save_4_$BITRISE_BUILD_NUMBER
 
   test_non_multikey_restore:
     steps:
@@ -253,6 +282,11 @@ workflows:
         - expected: $BITRISE_SOURCE_DIR/expected_files.txt
         - dir: $CACHE_DIR
         - orig_dir: $ORIG_DIR
+    - bundle::clear_cache:
+        is_always_run: "true"
+        inputs:
+        - keys: |-
+            multikey_save_1_$BITRISE_BUILD_NUMBER
 
   test_npm:
     envs:
@@ -308,6 +342,11 @@ workflows:
         - expected: $BITRISE_SOURCE_DIR/expected_files.txt
         - dir: node_modules
         - diff_files: false
+    - bundle::clear_cache:
+        is_always_run: "true"
+        inputs:
+        - keys: |-
+            $BITRISE_CACHE_KEY
 
   test_gradle:
     envs:
@@ -356,6 +395,11 @@ workflows:
         - expected: $BITRISE_SOURCE_DIR/expected_files.txt
         - dir: ~/.gradle/wrapper
         - diff_files: false
+    - bundle::clear_cache:
+        is_always_run: "true"
+        inputs:
+        - keys: |-
+            $BITRISE_CACHE_KEY
 
 step_bundles:
   setup:
@@ -510,3 +554,25 @@ step_bundles:
             pushd $target_dir > /dev/null || { echo "Failed to enter $target_dir"; exit 1; }
             find . -type f | sort > $BITRISE_SOURCE_DIR/expected_files.txt
             popd > /dev/null || { echo "Failed to pop directory"; exit 1; }
+
+  clear_cache:
+    inputs:
+    - keys: ""
+    steps:
+    - script:
+        title: Clear cache
+        inputs:
+        - content: |-
+            #!/bin/env bash
+            set -e
+
+            if [ -z "$BITRISEIO_ABCS_API_URL" ] || [ -z "$BITRISEIO_BITRISE_SERVICES_ACCESS_TOKEN" ] || [ -z "$BITRISE_APP_SLUG" ]; then
+                echo "Required environment variables are not set."
+                exit 1
+            fi
+
+            while IFS= read -r key; do
+                curl -X DELETE \
+                    -H "Authorization: Bearer $BITRISEIO_BITRISE_SERVICES_ACCESS_TOKEN" \
+                    "$BITRISEIO_ABCS_API_URL/v0.1/apps/$BITRISE_APP_SLUG/cache_items/$key"
+            done <<< "$keys"
