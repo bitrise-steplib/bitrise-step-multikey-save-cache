@@ -2,7 +2,7 @@
 
 [![Step changelog](https://shields.io/github/v/release/bitrise-steplib/bitrise-step-multikey-save-cache?include_prereleases&label=changelog&color=blueviolet)](https://github.com/bitrise-steplib/bitrise-step-multikey-save-cache/releases)
 
-Saves items to the cache based on key-value pairs. This Step needs to be used in combination with **Multikey restore cache** or **Restore cache**.
+Saves items to the cache based on key-value pairs. This Step needs to be used in combination with **Multikey Restore Cache** or **Restore Cache**.
 
 <details>
 <summary>Description</summary>
@@ -26,11 +26,11 @@ multikey_4 = e2e/tmp/multikey_4_0.txt, e2e/tmp/multikey_4_1.txt
 multikey_5=e2e/tmp/multikey_5_0.txt,e2e/tmp/multikey_5_1.txt
 ```
 
-This Step needs to be used in combination with **Multikey restore cache** or **Restore cache**.
+This Step needs to be used in combination with **Multikey Restore Cache** or **Restore Cache**.
 
 #### About key-based caching
 
-Key-based caching is a concept where cache archives are saved and restored using a unique cache key. One Bitrise project can have multiple cache archives stored simultaneously, and the **Restore cache** step downloads a cache archive associated with the key provided as a Step input. The **Save cache** step is responsible for uploading the cache archive with an exact key.
+Key-based caching is a concept where cache archives are saved and restored using a unique cache key. One Bitrise project can have multiple cache archives stored simultaneously, and the **Restore Cache Step** downloads a cache archive associated with the key provided as a Step input. The **Save Cache** Step is responsible for uploading the cache archive with an exact key.
 
 Caches can become outdated across builds when something changes in the project (for example, a dependency gets upgraded to a new version). In this case, a new (unique) cache key is needed to save the new cache contents. This is possible if the cache key is dynamic and changes based on the project state (for example, a checksum of the dependency lockfile is part of the cache key). If you use the same dynamic cache key when restoring the cache, the Step will download the most relevant cache archive available.
 
@@ -38,7 +38,7 @@ Key-based caching is platform-agnostic and can be used to cache anything by care
 
 #### Templates
 
-The Step requires a string key to use when uploading a cache archive. In order to always download the most relevant cache archive for each build, the cache key input can contain template elements. The **Multikey restore cache** step evaluates the key template at runtime and the final key value can change based on the build environment or files in the repo. Similarly, the **Multikey save cache** Step also uses templates to compute a unique cache key when uploading a cache archive.
+The Step requires a string key to use when uploading a cache archive. In order to always download the most relevant cache archive for each build, the cache key input can contain template elements. The **Restore cache Step** evaluates the key template at runtime and the final key value can change based on the build environment or files in the repo. Similarly, the **Save cache** Step also uses templates to compute a unique cache key when uploading a cache archive.
 
 The following variables are supported in the **Cache key** input:
 
@@ -65,7 +65,7 @@ Examples of `getenv`:
 
 #### Key matching
 
-The most straightforward use case is when both the **Multikey save cache** and **Multikey restore cache** steps use the same exact key to transfer cache between builds. Stored cache archives are scoped to the Bitrise project. Builds can restore caches saved by any previous Workflow run on any Bitrise Stack.
+The most straightforward use case is when both the **Multikey save cache** and **Multikey restore cache** steps  use the same exact key to transfer cache between builds. Stored cache archives are scoped to the Bitrise project. Builds can restore caches saved by any previous Workflow run on any Bitrise Stack.
 
 Unlike this Step, the **Multikey restore cache** Step can define multiple keys as fallbacks when there is no match for the first cache key. See the docs of the [**Multikey restore cache** step](https://github.com/bitrise-steplib/bitrise-step-multikey-restore-cache/) for more details.
 
@@ -75,15 +75,13 @@ The Step can decide to skip saving a new cache entry to avoid unnecessary work. 
 
 #### Related steps
 
-- [Save Cache](https://github.com/bitrise-steplib/bitrise-step-save-cache/)
-- [Restore Cache](https://github.com/bitrise-steplib/bitrise-step-restore-cache/)
-- [Multikey Restore Cache](https://github.com/bitrise-steplib/bitrise-step-multikey-restore-cache/)
+[Multikey Restore Cache](https://github.com/bitrise-steplib/bitrise-step-multikey-restore-cache/)
 
 </details>
 
 ## 🧩 Get started
 
-Add this step directly to your workflow in the [Bitrise Workflow Editor](https://devcenter.bitrise.io/en/steps-and-workflows/introduction-to-steps/adding-steps-to-a-workflow.html).
+Add this step directly to your workflow in the [Bitrise Workflow Editor](https://docs.bitrise.io/en/bitrise-ci/workflows-and-pipelines/steps/adding-steps-to-a-workflow.html).
 
 You can also run this step directly with [Bitrise CLI](https://github.com/bitrise-io/bitrise).
 
@@ -143,7 +141,7 @@ steps:
 
 | Key | Description | Flags | Default |
 | --- | --- | --- | --- |
-| `key_path_pairs` | Key - path list pairs used for saving a cache archive. The key supports template elements for creating dynamic cache keys. These dynamic keys change the final key value based on the build environment or files in the repo in order to create new cache archives. See the Step description for more details and examples.  The maximum length of a key is 512 characters (longer keys get truncated). Commas (`,`) are not allowed in keys. The path list is a list of files and folders to include in the cache. Separate each path with a comma (`,`). Each path can contain wildcards (`*` and `**`) that are evaluated at runtime. | required |  |
+| `key_path_pairs` | A mapping used to define the cache keys and the paths to include in the cache archive. The format is: ``` OPTIONAL_UNIQUNESS_PREFIX KEY1 = PATH1, PATH2, ... OPTIONAL_UNIQUNESS_PREFIX KEY2 = PATH3, ... ``` where `OPTIONAL_UNIQUNESS_PREFIX` is `[u]` and means that the key in the given line is unique (see **Restore Cache**). The number of keys and paths for each are limited to a number of 10  The maximum length of a key is 512 characters (longer keys get truncated). Commas (`,`) and equal signs (`=`) are not allowed in keys neither in paths.  The key supports template elements for creating dynamic cache keys. These dynamic keys change the final key value based on the build environment or files in the repo in order to create new cache archives. See the Step description for more details and examples. | required |  |
 | `verbose` | Enable logging additional information for troubleshooting | required | `false` |
 | `compression_level` | Zstd compression level to control speed / archive size. Set to 1 for fastest option. Valid values are between 1 and 19. Defaults to 3. |  | `3` |
 | `custom_tar_args` | Additional arguments to pass to the tar command when creating the cache archive.  The arguments are passed directly to the `tar` command. Use this input to customize the behavior of the tar command when creating the cache archive (these are appended to the default arguments used by the step).  Example: `--format posix` |  |  |
@@ -158,11 +156,11 @@ There are no outputs defined in this step
 
 We welcome [pull requests](https://github.com/bitrise-steplib/bitrise-step-multikey-save-cache/pulls) and [issues](https://github.com/bitrise-steplib/bitrise-step-multikey-save-cache/issues) against this repository.
 
-For pull requests, work on your changes in a forked repository and use the Bitrise CLI to [run step tests locally](https://devcenter.bitrise.io/en/bitrise-cli/running-your-first-local-build-with-the-cli.html).
+For pull requests, work on your changes in a forked repository and use the Bitrise CLI to [run step tests locally](https://docs.bitrise.io/en/bitrise-ci/bitrise-cli/running-your-first-local-build-with-the-cli.html).
 
 **Note:** this step's end-to-end tests (defined in `e2e/bitrise.yml`) are working with secrets which are intentionally not stored in this repo. External contributors won't be able to run those tests. Don't worry, if you open a PR with your contribution, we will help with running tests and make sure that they pass.
 
 
 Learn more about developing steps:
 
-- [Create your own step](https://devcenter.bitrise.io/en/steps-and-workflows/developing-your-own-bitrise-step.html)
+- [Create your own step](https://docs.bitrise.io/en/bitrise-ci/workflows-and-pipelines/developing-your-own-bitrise-step/developing-a-new-step.html)
